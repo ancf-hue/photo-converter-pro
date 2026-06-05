@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ФотоКонвертер Pro — Конвертер изображений</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+
+<style>
+:root {
+    --bg-start: #0f172a; --bg-end: #1e3a8a;
+    --glass: rgba(255, 255, 255, 0.08); --glass-border: rgba(255, 255, 255, 0.15);
+    --text: #e2e8f0; --accent: #3b82f6;
+}
+* { user-select: none; box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+    font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+    background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+    color: var(--text); padding: 8px; display: flex; flex-direction: column;
+}
+header { padding: 6px 12px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.logo-img { width: 28px; height: 28px; border-radius: 6px; background: #fff; padding: 2px; object-fit: contain; }
+header h1 { font-size: 15px; font-weight: 700; }
+header .hint { font-size: 10px; color: #94a3b8; margin-left: auto; }
+
+.category-tabs {
+    display: flex; gap: 6px; margin-bottom: 6px; flex-shrink: 0; flex-wrap: wrap;
+}
+.cat-tab {
+    flex: 1; min-width: 110px;
+    padding: 9px 14px;
+    background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+    color: #94a3b8;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px 12px 4px 4px;
+    cursor: pointer; font-size: 0.75rem; font-weight: 600;
+    text-align: center; transition: all 0.2s;
+    box-shadow: 0 3px 0 #0f172a, 0 4px 8px rgba(0,0,0,0.3);
+    position: relative; overflow: hidden;
+}
+.cat-tab::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    pointer-events: none;
+}
+.cat-tab:hover {
+    background: linear-gradient(180deg, #475569 0%, #334155 100%);
+    color: #fff;
+    box-shadow: 0 3px 0 #0f172a, 0 0 15px rgba(59, 130, 246, 0.4);
+}
+.cat-tab:active { transform: translateY(3px); box-shadow: 0 0 0 #0f172a; }
+.cat-tab.active {
+    background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #fff;
+    box-shadow: 0 3px 0 #1e3a8a, 0 0 20px rgba(59, 130, 246, 0.6), 0 0 40px rgba(59, 130, 246, 0.3);
+}
+
+.control-panel {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    background: var(--glass); backdrop-filter: blur(16px);
+    padding: 8px 12px; border-radius: 0 0 16px 16px; margin-bottom: 8px;
+    align-items: center; justify-content: center; flex-shrink: 0;
+    border: 1px solid var(--glass-border); border-top: none;
+}
+.control-group { display: flex; align-items: center; gap: 6px; background: rgba(0, 0, 0, 0.3); padding: 4px 10px; border-radius: 20px; }
+.control-group label { font-weight: 600; font-size: 0.75rem; color: #bbf0c3; }
+select, input[type="range"], input[type="number"] {
+    background: rgba(0, 0, 0, 0.5); color: white; border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 5px 10px; font-size: 0.8rem; border-radius: 16px; outline: none; font-weight: 500; cursor: pointer;
+}
+input[type="range"] { padding: 0; width: 100px; }
+input[type="number"] { width: 70px; }
+
+button {
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 7px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    color: white;
+    transition: all 0.1s ease;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    overflow: hidden;
+}
+button::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 100%);
+    border-radius: 12px 12px 0 0;
+    pointer-events: none;
+}
+button:active:not(:disabled) { 
+    transform: translateY(3px); 
+    box-shadow: 0 1px 0 rgba(0,0,0,0.5), 0 2px 5px rgba(0,0,0,0.3) !important; 
+}
+
+#convertBtn {
+    background: linear-gradient(180deg, #34d399 0%, #059669 100%);
+    box-shadow: 0 4px 0 #047857, 0 6px 15px rgba(52, 211, 153, 0.4);
+}
+#convertBtn:hover:not(:disabled) {
+    box-shadow: 0 4px 0 #047857, 0 0 20px rgba(52, 211, 153, 0.8);
+    filter: brightness(1.1);
+}
+
+.btn-sec {
+    background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+    box-shadow: 0 4px 0 #1d4ed8, 0 6px 15px rgba(59, 130, 246, 0.4);
+}
+.btn-sec:hover:not(:disabled) {
+    box-shadow: 0 4px 0 #1d4ed8, 0 0 20px rgba(96, 165, 250, 0.8);
+    filter: brightness(1.1);
+}
+
+.btn-danger {
+    background: linear-gradient(180deg, #f87171 0%, #ef4444 100%);
+    box-shadow: 0 4px 0 #b91c1c, 0 6px 15px rgba(239, 68, 68, 0.4);
+}
+.btn-danger:hover:not(:disabled) {
+    box-shadow: 0 4px 0 #b91c1c, 0 0 20px rgba(248, 113, 113, 0.8);
+    filter: brightness(1.1);
+}
+
+.btn-purple {
+    background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%);
+    box-shadow: 0 4px 0 #5b21b6, 0 6px 15px rgba(167, 139, 250, 0.4);
+}
+.btn-purple:hover:not(:disabled) {
+    box-shadow: 0 4px 0 #5b21b6, 0 0 20px rgba(167, 139, 250, 0.8);
+    filter: brightness(1.1);
+}
+
+.workspace { display: flex; gap: 10px; flex-grow: 1; min-height: 0; margin-bottom: 6px; }
+.editor-box {
+    flex: 1; display: flex; flex-direction: column;
+    background: rgba(0, 0, 0, 0.2); border-radius: 14px;
+    border: 2px dashed transparent; overflow: hidden;
+    transition: border-color 0.2s;
+    position: relative;
+}
+.editor-box.drag-over {
+    border-color: #34d399;
+    background: rgba(52, 211, 153, 0.1);
+}
+.editor-header {
+    padding: 6px 10px; background: rgba(0,0,0,0.3);
+    font-size: 0.75rem; font-weight: 600; color: #94a3b8;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 6px;
+}
+.editor-header .header-buttons { display: flex; gap: 6px; }
+.file-hint { font-size: 0.7rem; color: #64748b; font-weight: normal; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.preview-area {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 10px; overflow: auto; min-height: 200px;
+    position: relative;
+}
+.preview-area img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+.preview-placeholder {
+    text-align: center; color: #64748b; font-size: 0.85rem;
+}
+.preview-placeholder span { font-size: 48px; display: block; margin-bottom: 10px; }
+
+.stats-bar {
+    padding: 4px 10px; background: rgba(0,0,0,0.3);
+    font-size: 0.7rem; color: #94a3b8;
+    display: flex; gap: 10px;
+}
+.status-ok { color: #34d399; margin-left: auto; }
+.status-err { color: #f87171; margin-left: auto; }
+
+/* ИНДИКАТОР ЗАГРУЗКИ */
+.loading-overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px; z-index: 100;
+    border-radius: 14px;
+}
+.loading-overlay.active { display: flex; }
+.spinner {
+    width: 40px; height: 40px;
+    border: 4px solid rgba(255,255,255,0.2);
+    border-top-color: #34d399;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { color: #e2e8f0; font-size: 13px; font-weight: 600; }
+
+footer {
+    padding: 8px 12px;
+    background: var(--glass);
+    backdrop-filter: blur(16px);
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    text-align: center;
+    flex-shrink: 0;
+}
+.footer-line-1 { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+.footer-line-2 {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; flex-wrap: wrap; font-size: 11px;
+}
+.copy-phone-btn {
+    background: #475569; padding: 2px 6px; border-radius: 6px;
+    cursor: pointer; font-size: 9px;
+}
+.success-text { color: #86efac; }
+.link-box {
+    display: inline-flex; padding: 3px 8px;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid #3b82f6; border-radius: 8px;
+    color: #60a5fa; text-decoration: none; font-size: 10px;
+}
+.toast {
+    position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: rgba(52, 211, 153, 0.95); color: #064e3b; padding: 10px 20px;
+    border-radius: 8px; font-size: 12px; z-index: 9999;
+    opacity: 0; transition: all 0.3s;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: rgba(239, 68, 68, 0.95); color: white; }
+input[type="file"] { display: none; }
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+}
+
+@media (max-width: 700px) {
+    .workspace { flex-direction: column; }
+    .cat-tab { min-width: 80px; font-size: 0.65rem; padding: 6px 8px; }
+    button { padding: 6px 10px; font-size: 0.75rem; }
+    .control-group select { font-size: 0.7rem; padding: 4px 8px; }
+    .file-hint { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+    <img src="favicon.ico" alt="Логотип" class="logo-img" onerror="this.style.display='none'">
+    <h1>ФотоКонвертер Pro</h1>
+    <span class="hint">Офлайн · 3 формата · 3D кнопки</span>
+</header>
+
+<div class="category-tabs">
+    <div class="cat-tab active" data-cat="convert">🖼️ Конвертер</div>
+    <div class="cat-tab" data-cat="settings">⚙️ Обработка</div>
+    <div class="cat-tab" data-cat="filters">🎨 Фильтры</div>
+</div>
+
+<div class="control-panel" id="controlPanel"></div>
+
+<div class="workspace">
+    <div class="editor-box" id="inputBox">
+        <div class="editor-header">
+            <span>📷 Оригинал</span>
+            <span class="file-hint" id="fileHint"></span>
+            <div class="header-buttons">
+                <button class="btn-sec" id="loadFileBtn">📂 Загрузить</button>
+            </div>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+        <div class="preview-area" id="originalPreview">
+            <div class="preview-placeholder">
+                <span>🖼️</span><br>
+                Перетащите изображение<br>или нажмите "Загрузить"
+            </div>
+        </div>
+        <div class="stats-bar">
+            <span id="originalStats">Нет изображения</span>
+        </div>
+        <div class="loading-overlay" id="originalLoading">
+            <div class="spinner"></div>
+            <div class="loading-text">Загрузка...</div>
+        </div>
+    </div>
+
+    <div class="editor-box">
+        <div class="editor-header">
+            <span>✨ Результат</span>
+            <div class="header-buttons">
+                <button class="btn-danger" id="resetBtn" disabled>⟳ Сброс</button>
+                <button class="btn-sec" id="downloadBtn" disabled>💾 Скачать</button>
+            </div>
+        </div>
+        <div class="preview-area" id="resultPreview">
+            <div class="preview-placeholder">
+                <span>🎨</span><br>
+                Здесь появится результат
+            </div>
+        </div>
+        <div class="stats-bar">
+            <span id="resultStats"></span>
+            <span id="statusMsg" class="status-ok"></span>
+        </div>
+        <div class="loading-overlay" id="resultLoading">
+            <div class="spinner"></div>
+            <div class="loading-text">Обработка...</div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-line-1">🤝 ПОДДЕРЖАТЬ ПРОЕКТ 💙 Приложение бесплатное. Было и останется.</div>
+    <div class="footer-line-2">
+        <span>📱 ПЕРЕВОД ПО НОМЕРУ: 8-920-227-56-76</span>
+        <button class="copy-phone-btn" id="copyPhone">📋 Копировать номер</button>
+        <span class="success-text">✅ Мгновенно. Без комиссии.</span>
+        <a href="https://ancf-hue.github.io/" target="_blank" class="link-box">🌟 Каталог Anti-AI Shield</a>
+    </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let originalImage = null;
+let originalFile = null;
+let resultImage = null;
+let currentCategory = 'convert';
+
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d');
+
+const controlPanel = document.getElementById('controlPanel');
+const originalPreview = document.getElementById('originalPreview');
+const resultPreview = document.getElementById('resultPreview');
+const originalStats = document.getElementById('originalStats');
+const resultStats = document.getElementById('resultStats');
+const fileHint = document.getElementById('fileHint');
+const statusMsg = document.getElementById('statusMsg');
+const downloadBtn = document.getElementById('downloadBtn');
+const resetBtn = document.getElementById('resetBtn');
+const originalLoading = document.getElementById('originalLoading');
+const resultLoading = document.getElementById('resultLoading');
+
+function showLoading(element, show = true) {
+    if (show) element.classList.add('active');
+    else element.classList.remove('active');
+}
+
+function updateButtons() {
+    const hasResult = !!resultImage;
+    const hasOriginal = !!originalImage;
+    downloadBtn.disabled = !(hasResult || hasOriginal);
+    resetBtn.disabled = !hasResult;
+}
+
+function renderControlPanel() {
+    if (currentCategory === 'convert') {
+        controlPanel.innerHTML = `
+            <div class="control-group"><label>Формат:</label>
+                <select id="targetFormat">
+                    <option value="image/png">PNG</option>
+                    <option value="image/jpeg">JPEG (JPG)</option>
+                    <option value="image/webp">WEBP</option>
+                </select>
+            </div>
+            <div class="control-group"><label>Качество:</label>
+                <input type="range" id="quality" min="0.1" max="1" step="0.05" value="0.9">
+                <span id="qualityValue">90%</span>
+            </div>
+            <button id="convertBtn">🔄 Конвертировать →</button>
+        `;
+        document.getElementById('convertBtn')?.addEventListener('click', convertImage);
+        const qualitySlider = document.getElementById('quality');
+        const qualityValue = document.getElementById('qualityValue');
+        if (qualitySlider) {
+            qualitySlider.addEventListener('input', (e) => {
+                qualityValue.textContent = Math.round(e.target.value * 100) + '%';
+            });
+        }
+    } 
+    else if (currentCategory === 'settings') {
+        controlPanel.innerHTML = `
+            <div class="control-group"><label>Ширина:</label>
+                <input type="number" id="width" placeholder="Авто">
+            </div>
+            <div class="control-group"><label>Высота:</label>
+                <input type="number" id="height" placeholder="Авто">
+            </div>
+            <button class="btn-sec" id="resizeBtn">📏 Изменить размер</button>
+            <button class="btn-sec" id="rotateLeft">🔄 Повернуть ←</button>
+            <button class="btn-sec" id="rotateRight">🔄 Повернуть →</button>
+            <button class="btn-sec" id="flipH">🪞 Отразить по горизонтали</button>
+            <button class="btn-sec" id="flipV">🪞 Отразить по вертикали</button>
+        `;
+        document.getElementById('resizeBtn')?.addEventListener('click', resizeImage);
+        document.getElementById('rotateLeft')?.addEventListener('click', () => rotateImage(-90));
+        document.getElementById('rotateRight')?.addEventListener('click', () => rotateImage(90));
+        document.getElementById('flipH')?.addEventListener('click', () => flipImage('horizontal'));
+        document.getElementById('flipV')?.addEventListener('click', () => flipImage('vertical'));
+    }
+    else if (currentCategory === 'filters') {
+        controlPanel.innerHTML = `
+            <div class="control-group"><label>Яркость:</label>
+                <input type="range" id="brightness" min="-100" max="100" value="0">
+                <span id="brightnessVal">0</span>
+            </div>
+            <div class="control-group"><label>Контраст:</label>
+                <input type="range" id="contrast" min="0" max="200" value="100">
+                <span id="contrastVal">100%</span>
+            </div>
+            <div class="control-group"><label>Размытие:</label>
+                <input type="range" id="blur" min="0" max="10" step="0.5" value="0">
+                <span id="blurVal">0</span>
+            </div>
+            <button class="btn-purple" id="grayscaleBtn">⚫ Ч/Б</button>
+            <button class="btn-purple" id="sepiaBtn">🟤 Сепия</button>
+            <button class="btn-purple" id="invertBtn">🔲 Инверсия</button>
+            <button class="btn-purple" id="resetFiltersBtn">⟳ Сброс</button>
+            <button class="btn-sec" id="applyFiltersBtn">✅ Применить</button>
+        `;
+        
+        document.getElementById('brightness')?.addEventListener('input', (e) => {
+            document.getElementById('brightnessVal').textContent = e.target.value;
+        });
+        document.getElementById('contrast')?.addEventListener('input', (e) => {
+            document.getElementById('contrastVal').textContent = e.target.value + '%';
+        });
+        document.getElementById('blur')?.addEventListener('input', (e) => {
+            document.getElementById('blurVal').textContent = e.target.value;
+        });
+        document.getElementById('grayscaleBtn')?.addEventListener('click', () => applyFilter('grayscale'));
+        document.getElementById('sepiaBtn')?.addEventListener('click', () => applyFilter('sepia'));
+        document.getElementById('invertBtn')?.addEventListener('click', () => applyFilter('invert'));
+        document.getElementById('resetFiltersBtn')?.addEventListener('click', resetFilters);
+        document.getElementById('applyFiltersBtn')?.addEventListener('click', () => {
+            const brightness = parseInt(document.getElementById('brightness')?.value || 0);
+            const contrast = parseInt(document.getElementById('contrast')?.value || 100);
+            const blur = parseFloat(document.getElementById('blur')?.value || 0);
+            applyAdvancedFilters(brightness, contrast, blur);
+        });
+    }
+}
+
+const loadFileBtn = document.getElementById('loadFileBtn');
+const fileInput = document.getElementById('fileInput');
+const inputBox = document.getElementById('inputBox');
+
+loadFileBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) handleImageFile(file);
+    fileInput.value = '';
+});
+
+function handleImageFile(file) {
+    if (!file.type.startsWith('image/')) {
+        showToast('❌ Пожалуйста, выберите изображение', true);
+        return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('⚠️ Изображение больше 10 МБ, обработка может быть медленной');
+    }
+    
+    originalFile = file;
+    fileHint.textContent = '📷 ' + file.name;
+    showLoading(originalLoading, true);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            originalImage = img;
+            resultImage = null;
+            updateOriginalPreview();
+            updateResultPreview();
+            updateButtons();
+            showLoading(originalLoading, false);
+            showToast('✅ Изображение загружено!');
+        };
+        img.onerror = () => {
+            showLoading(originalLoading, false);
+            showToast('❌ Ошибка загрузки изображения', true);
+        };
+        img.src = e.target.result;
+    };
+    reader.onerror = () => {
+        showLoading(originalLoading, false);
+        showToast('❌ Ошибка чтения файла', true);
+    };
+    reader.readAsDataURL(file);
+}
+
+function updateOriginalPreview() {
+    if (originalImage) {
+        originalPreview.innerHTML = `<img src="${originalImage.src}" alt="Оригинал">`;
+        originalStats.textContent = `${originalImage.width}×${originalImage.height} px`;
+    }
+}
+
+function updateResultPreview() {
+    if (resultImage) {
+        resultPreview.innerHTML = `<img src="${resultImage.src}" alt="Результат">`;
+        resultStats.textContent = `${resultImage.width}×${resultImage.height} px`;
+    } else {
+        resultPreview.innerHTML = `<div class="preview-placeholder"><span>🎨</span><br>Здесь появится результат</div>`;
+        resultStats.textContent = '';
+    }
+}
+
+function processImage(processFn) {
+    const sourceImage = resultImage || originalImage;
+    if (!sourceImage) {
+        showToast('❌ Сначала загрузите изображение', true);
+        return;
+    }
+    
+    showLoading(resultLoading, true);
+    
+    // Используем setTimeout, чтобы индикатор загрузки успел отобразиться
+    setTimeout(() => {
+        try {
+            processFn(sourceImage);
+            showLoading(resultLoading, false);
+        } catch (err) {
+            showLoading(resultLoading, false);
+            showToast('❌ Ошибка обработки', true);
+            console.error(err);
+        }
+    }, 50);
+}
+
+function convertImage() {
+    processImage((sourceImage) => {
+        const format = document.getElementById('targetFormat')?.value || 'image/png';
+        const quality = parseFloat(document.getElementById('quality')?.value || 0.9);
+        
+        statusMsg.textContent = '⏳ Конвертация...';
+        statusMsg.className = 'status-ok';
+        
+        canvas.width = sourceImage.width;
+        canvas.height = sourceImage.height;
+        ctx.drawImage(sourceImage, 0, 0);
+        
+        const dataUrl = canvas.toDataURL(format, quality);
+        
+        const resultImg = new Image();
+        resultImg.onload = () => {
+            resultImage = resultImg;
+            updateResultPreview();
+            updateButtons();
+            statusMsg.textContent = '✅ Готово';
+            showToast('✅ Конвертация выполнена!');
+        };
+        resultImg.src = dataUrl;
+    });
+}
+
+function resizeImage() {
+    let newWidth = parseInt(document.getElementById('width')?.value);
+    let newHeight = parseInt(document.getElementById('height')?.value);
+    
+    if (isNaN(newWidth) && isNaN(newHeight)) {
+        showToast('❌ Укажите ширину или высоту', true);
+        return;
+    }
+    
+    processImage((sourceImage) => {
+        const aspect = sourceImage.width / sourceImage.height;
+        if (isNaN(newWidth)) newWidth = Math.round(newHeight * aspect);
+        if (isNaN(newHeight)) newHeight = Math.round(newWidth / aspect);
+        
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        ctx.drawImage(sourceImage, 0, 0, newWidth, newHeight);
+        
+        const resultImg = new Image();
+        resultImg.onload = () => {
+            resultImage = resultImg;
+            updateResultPreview();
+            updateButtons();
+            showToast('✅ Размер изменён');
+        };
+        resultImg.src = canvas.toDataURL();
+    });
+}
+
+function rotateImage(degrees) {
+    processImage((sourceImage) => {
+        const radians = degrees * Math.PI / 180;
+        const isVertical = Math.abs(degrees % 180) === 90;
+        
+        canvas.width = isVertical ? sourceImage.height : sourceImage.width;
+        canvas.height = isVertical ? sourceImage.width : sourceImage.height;
+        
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(radians);
+        ctx.drawImage(sourceImage, -sourceImage.width / 2, -sourceImage.height / 2);
+        ctx.restore();
+        
+        const resultImg = new Image();
+        resultImg.onload = () => {
+            resultImage = resultImg;
+            updateResultPreview();
+            updateButtons();
+            showToast(`✅ Повернуто на ${degrees}°`);
+        };
+        resultImg.src = canvas.toDataURL();
+    });
+}
+
+function flipImage(direction) {
+    processImage((sourceImage) => {
+        canvas.width = sourceImage.width;
+        canvas.height = sourceImage.height;
+        
+        ctx.save();
+        if (direction === 'horizontal') {
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+        } else {
+            ctx.translate(0, canvas.height);
+            ctx.scale(1, -1);
+        }
+        ctx.drawImage(sourceImage, 0, 0);
+        ctx.restore();
+        
+        const resultImg = new Image();
+        resultImg.onload = () => {
+            resultImage = resultImg;
+            updateResultPreview();
+            updateButtons();
+            showToast('✅ Отражение выполнено');
+        };
+        resultImg.src = canvas.toDataURL();
+    });
+}
+
+function applyFilter(type) {
+    processImage((sourceImage) => {
+        canvas.width = sourceImage.width;
+        canvas.height = sourceImage.height;
+        ctx.drawImage(sourceImage, 0, 0);
+        
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            
+            if (type === 'grayscale') {
+                const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                data[i] = data[i + 1] = data[i + 2] = gray;
+            } else if (type === 'sepia') {
+                data[i] = Math.min(255, r * 0.393 + g * 0.769 + b * 0.189);
+                data[i + 1] = Math.min(255, r * 0.349 + g * 0.686 + b * 0.168);
+                data[i + 2] = Math.min(255, r * 0.272 + g * 0.534 + b * 0.131);
+            } else if (type === 'invert') {
+                data[i] = 255 - r;
+                data[i + 1] = 255 - g;
+                data[i + 2] = 255 - b;
+            }
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        
+        const resultImg = new Image();
+        resultImg.onload = () => {
+            resultImage = resultImg;
+            updateResultPreview();
+            updateButtons();
+            showToast(`✅ Фильтр применён`);
+        };
+        resultImg.src = canvas.toDataURL();
+    });
+}
+
+function resetFilters() {
+    if (!originalImage) {
+        showToast('❌ Сначала загрузите изображение', true);
+        return;
+    }
+    
+    if (document.getElementById('brightness')) document.getElementById('brightness').value = 0;
+    if (document.getElementById('contrast')) document.getElementById('contrast').value = 100;
+    if (document.getElementById('blur')) document.getElementById('blur').value = 0;
+    if (document.getElementById('brightnessVal')) document.getElementById('brightnessVal').textContent = '0';
+    if (document.getElementById('contrastVal')) document.getElementById('contrastVal').textContent = '100%';
+    if (document.getElementById('blurVal')) document.getElementById('blurVal').textContent = '0';
+    
+    const resultImg = new Image();
+    resultImg.onload = () => {
+        resultImage = resultImg;
+        updateResultPreview();
+        updateButtons();
+        showToast('✅ Фильтры сброшены');
+    };
+    resultImg.src = originalImage.src;
+}
+
+function applyAdvancedFilters(brightness, contrast, blur) {
+    processImage((sourceImage) => {
+        canvas.width = sourceImage.width;
+        canvas.height = sourceImage.height;
+        
+        ctx.filter = `brightness(${100 + brightness}%) contrast(${contrast}%) blur(${blur}px)`;
+        ctx.drawImage(sourceImage, 0, 0);
+        ctx.filter = 'none';
+        
+        const resultImg = new Image();
+        resultImg.onload = () => {
+            resultImage = resultImg;
+            updateResultPreview();
+            updateButtons();
+            showToast('✅ Фильтры применены');
+        };
+        resultImg.src = canvas.toDataURL();
+    });
+}
+
+// СБРОС РЕЗУЛЬТАТА — возврат к оригиналу
+resetBtn.addEventListener('click', () => {
+    if (!originalImage) {
+        showToast('❌ Нет оригинала для сброса', true);
+        return;
+    }
+    
+    resultImage = null;
+    updateResultPreview();
+    updateButtons();
+    statusMsg.textContent = '';
+    showToast('⟳ Результат сброшен');
+});
+
+downloadBtn.addEventListener('click', () => {
+    const imgToDownload = resultImage || originalImage;
+    if (!imgToDownload) {
+        showToast('❌ Сначала загрузите изображение', true);
+        return;
+    }
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.7); z-index: 10000;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(5px);
+    `;
+    
+    modal.innerHTML = `
+        <div style="
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 24px; border-radius: 16px; max-width: 400px; width: 90%;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        ">
+            <h3 style="margin: 0 0 16px 0; color: #e2e8f0; font-size: 18px;">💾 Скачать изображение</h3>
+            <p style="margin: 0 0 12px 0; color: #94a3b8; font-size: 13px;">
+                Размер: ${imgToDownload.width}×${imgToDownload.height} px<br>
+                Выберите формат для сохранения:
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                <button class="format-btn" data-format="image/png" style="
+                    width: 100%; padding: 12px; background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+                    border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; color: white;
+                    font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+                ">🖼️ PNG (без потерь, большой размер)</button>
+                <button class="format-btn" data-format="image/jpeg" style="
+                    width: 100%; padding: 12px; background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+                    border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; color: white;
+                    font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+                ">📷 JPEG (сжатие, маленький размер)</button>
+                <button class="format-btn" data-format="image/webp" style="
+                    width: 100%; padding: 12px; background: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%);
+                    border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; color: white;
+                    font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+                ">🌐 WEBP (современный, оптимальный)</button>
+            </div>
+            <button id="cancelDownload" style="
+                width: 100%; padding: 10px; background: rgba(255,255,255,0.1);
+                border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: #94a3b8;
+                font-size: 13px; cursor: pointer;
+            ">Отмена</button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    modal.querySelectorAll('.format-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const format = btn.dataset.format;
+            const quality = parseFloat(document.getElementById('quality')?.value || 0.9);
+            
+            canvas.width = imgToDownload.width;
+            canvas.height = imgToDownload.height;
+            ctx.drawImage(imgToDownload, 0, 0);
+            
+            const dataUrl = canvas.toDataURL(format, quality);
+            
+            let ext = format.split('/')[1];
+            if (ext === 'jpeg') ext = 'jpg';
+            
+            const link = document.createElement('a');
+            link.download = `converted_${Date.now()}.${ext}`;
+            link.href = dataUrl;
+            link.click();
+            
+            document.body.removeChild(modal);
+            showToast(`💾 Изображение скачано в формате ${ext.toUpperCase()}`);
+        });
+        
+        btn.addEventListener('mouseenter', () => {
+            btn.style.transform = 'translateY(-2px)';
+            btn.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
+        });
+        btn.addEventListener('mouseleave', () => {
+            btn.style.transform = 'translateY(0)';
+            btn.style.boxShadow = 'none';
+        });
+    });
+    
+    modal.querySelector('#cancelDownload').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) document.body.removeChild(modal);
+    });
+});
+
+document.querySelectorAll('.cat-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentCategory = tab.dataset.cat;
+        renderControlPanel();
+    });
+});
+
+['dragenter', 'dragover'].forEach(eventName => {
+    inputBox.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        inputBox.classList.add('drag-over');
+    });
+});
+['dragleave', 'drop'].forEach(eventName => {
+    inputBox.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        inputBox.classList.remove('drag-over');
+    });
+});
+inputBox.addEventListener('drop', (e) => {
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) handleImageFile(file);
+    else if (file) showToast('❌ Пожалуйста, перетащите изображение', true);
+});
+
+function showToast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isError ? ' error' : '');
+    setTimeout(() => t.className = 'toast', 3000);
+}
+
+document.getElementById('copyPhone').onclick = function() {
+    const phone = '8-920-227-56-76';
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(phone).then(() => {
+            this.innerHTML = '✅';
+            showToast('✅ Телефон скопирован!');
+            setTimeout(() => this.innerHTML = '📋', 2000);
+        }).catch(() => fallbackCopyPhone(phone, this));
+    } else {
+        fallbackCopyPhone(phone, this);
+    }
+};
+
+function fallbackCopyPhone(phone, btn) {
+    const ta = document.createElement('textarea');
+    ta.value = phone;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+        document.execCommand('copy');
+        btn.innerHTML = '✅';
+        showToast('✅ Телефон скопирован!');
+        setTimeout(() => btn.innerHTML = '📋', 2000);
+    } catch (e) {
+        showToast('❌ Не удалось скопировать', true);
+    }
+    document.body.removeChild(ta);
+}
+
+renderControlPanel();
+updateButtons();
+</script>
+</body>
+</html>
